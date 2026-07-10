@@ -10,6 +10,12 @@ export const useGameSocket = (token: string | null) => {
   const [countdown, setCountdown] = useState(0);
   const multiplierRef = useRef(1.0);
 
+  const newSocket = io(process.env.NEXT_PUBLIC_WS_URL, {
+  auth: { token },
+  transports: ["websocket"],
+  path: "/socket.io/", // if Render uses a proxy, this might be needed
+});
+
   useEffect(() => {
     if (!token) return;
     const newSocket = io(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3000/game", {

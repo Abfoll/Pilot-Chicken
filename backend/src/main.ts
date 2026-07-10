@@ -6,6 +6,11 @@ import { ConfigService } from '@nestjs/config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+
+  app.enableCors({
+  origin: process.env.FRONTEND_URL || 'https://your-app.vercel.app',
+  credentials: true,
+});
   
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.enableCors({
