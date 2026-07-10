@@ -11,17 +11,17 @@ import { Bet } from '../modules/bet/bet.entity';
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: Number(config.get('DB_PORT') || 5432),
-        username: config.get('DB_USER'),
-        password: config.get('DB_PASSWORD') || config.get('DB_PASS'),
-        database: config.get('DB_NAME'),
-        entities: [User, Wallet, Transaction, Round, Bet],
-        synchronize: process.env.NODE_ENV !== 'production',
-        logging: process.env.NODE_ENV !== 'production',
-      }),
+      useFactory: (config: ConfigService) => {
+        const isProduction = config.get('NODE_ENV') === 'production';
+        return {
+          type: 'postgres',
+          url: config.get('DATABASE_URL'), // 👈 single connection string
+          entities: [User, Wallet, Transaction, Round, Bet],
+          synchronize: !isProduction, // 🚫 disable in production
+          logging: !isProduction,
+          ssl: isProduction ? { rejectUnauthorized: false } : false, // Render requires SSL
+        };
+      },
       inject: [ConfigService],
     }),
   ],
