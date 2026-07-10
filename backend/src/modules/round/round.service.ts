@@ -37,15 +37,17 @@ export class RoundService implements OnModuleInit {
     return Math.round(crash * 100) / 100;
   }
 
-  async getNextRoundNumber(): Promise<number> {
-    const last = await this.roundRepo.find({ order: { roundNumber: 'DESC' }, take: 1 });
-    return last.length ? last[0].roundNumber + 1 : 1;
-  }
+  
+async getNextRoundNumber(): Promise<number> {
+  const last = await this.roundRepo.find({ order: { roundNumber: 'DESC' }, take: 1 });
+  return last.length ? last[0].roundNumber + 1 : 1;
+}
 
-  async getNextNonce(): Promise<number> {
-    const last = await this.roundRepo.find({ order: { nonce: 'DESC' }, take: 1 });
-    return last.length ? last[0].nonce + 1 : 1;
-  }
+async getNextNonce(): Promise<number> {
+  const last = await this.roundRepo.find({ order: { nonce: 'DESC' }, take: 1 });
+  return last.length ? last[0].nonce + 1 : 1;
+}
+  
 
   async createRound(): Promise<Round> {
     const serverSeed = this.configService.get('SERVER_SEED') + Date.now();
