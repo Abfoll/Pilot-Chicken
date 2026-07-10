@@ -13,17 +13,12 @@ export class WalletController {
     return { balance: wallet.balance, bonusBalance: wallet.bonusBalance };
   }
 
-  // 🔥 NEW: Demo credit endpoint
+  // 🔥 Ensure this is present
   @Post('demo-credit')
   @UseGuards(JwtAuthGuard)
   async demoCredit(@Request() req) {
-    // Optional: restrict to non-production
-    if (process.env.NODE_ENV === 'production') {
-      throw new BadRequestException('Not available in production');
-    }
-    const user = req.user;
-    const amount = 1000; // or read from query param
-    const wallet = await this.walletService.credit(user, amount, 'Demo credit for testing');
-    return { balance: wallet.balance, bonusBalance: wallet.bonusBalance, message: `Credited ${amount}` };
+    // Remove production restriction for testing
+    const wallet = await this.walletService.credit(req.user, 1000, 'Demo credit');
+    return { balance: wallet.balance, bonusBalance: wallet.bonusBalance };
   }
 }
