@@ -11,7 +11,9 @@ export default function WalletPage() {
   const { token } = useAuth();
   const [depositAmount, setDepositAmount] = useState(100);
   const [withdrawAmount, setWithdrawAmount] = useState(50);
+  const [loading, setLoading] = useState(false);
 
+  // ----- Existing handlers -----
   const handleDeposit = async () => {
     toast.success(`Deposit of ${depositAmount} initiated (demo)`);
   };
@@ -24,11 +26,37 @@ export default function WalletPage() {
     toast.success(`Withdrawal of ${withdrawAmount} requested (demo)`);
   };
 
+  // ----- NEW: Demo credit handler -----
+  const claimDemoMoney = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/wallet/demo-credit`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        await refreshWallet();
+        toast.success('1,000 demo coins credited!');
+      } else {
+        toast.error('Failed to claim demo money');
+      }
+    } catch (error) {
+      toast.error('Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="max-w-md mx-auto">
         <h2 className="text-2xl font-bold mb-6">💰 Wallet</h2>
 
+        {/* Balance display */}
         <div className="bg-gray-800 rounded-xl p-6 mb-6">
           <div className="flex justify-between">
             <span className="text-gray-400">Main Balance</span>
@@ -40,6 +68,7 @@ export default function WalletPage() {
           </div>
         </div>
 
+        {/* Deposit / Withdraw */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
             <label className="block text-sm text-gray-400">Deposit</label>
@@ -73,6 +102,18 @@ export default function WalletPage() {
           </div>
         </div>
 
+        {/* Demo Credit Button */}
+        <div className="mb-4">
+          <button
+            onClick={claimDemoMoney}
+            disabled={loading}
+            className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 rounded-lg transition disabled:opacity-50"
+          >
+            {loading ? 'Claiming...' : '🎁 Claim 1000 Demo Coins'}
+          </button>
+        </div>
+
+        {/* Refresh button */}
         <button
           onClick={refreshWallet}
           className="w-full bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-sm"
