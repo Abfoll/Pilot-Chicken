@@ -12,19 +12,38 @@ import { Bet } from '../modules/bet/bet.entity';
   imports: [
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => {
-        const url = config.get('DATABASE_URL');
+        let url = config.get('DATABASE_URL');
+        console.log('📦 Raw DATABASE_URL:', url); // will show in logs
+
+        // If the host is incomplete (no domain), fix it
+        if (url && !url.includes('.render.com')) {
+          const parts = url.split('@');
+          if (parts.length === 2) {
+            const [userpass, hostAndDb] = parts;
+            const [host, ...dbParts] = hostAndDb.split('/');
+            if (host && !host.includes('.')) {
+              // Assume Oregon region – adjust if your DB is elsewhere
+              const fullHost = `${host}.oregon-postgres.render.com:5432`;
+              const db = dbParts.join('/');
+              url = `${userpass}@${fullHost}/${db}`;
+              console.log('✅ Fixed DATABASE_URL (masked):', url.replace(/:[^:@]*@/, ':***@'));
+            }
+          }
+        }
+
+        // Ensure SSL is enabled for production (always for Render)
         const isProduction = config.get('NODE_ENV') === 'production';
-        // For production, we generally want synchronize: false,
-        // but for now we can set it to true to auto-create tables.
-        // In production, you should run migrations instead.
-        const synchronize = config.get('DB_SYNCHRONIZE') === 'true' || !isProduction;
+        const finalUrl = url + (url.includes('?') ? '&' : '?') + 'sslmode=require';
+
         return {
           type: 'postgres',
-          url,
+          url: finalUrl,
           entities: [User, Wallet, Transaction, Round, Bet],
-          synchronize: synchronize, // true if dev or env var set
-          logging: !isProduction,
-          ssl: isProduction ? { rejectUnauthorized: false } : false,
+          synchronize: true, // auto‑create tables for now (disable later)
+          logging: true,
+          ssl: {
+            rejectUnauthorized: false,
+          },
         };
       },
       inject: [ConfigService],

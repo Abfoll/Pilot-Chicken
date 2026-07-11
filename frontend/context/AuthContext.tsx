@@ -9,6 +9,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: () => Promise<void>;
+  mockLogin: () => Promise<void>; // 👈 new
   logout: () => void;
 }
 
@@ -32,6 +33,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Login failed", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 👇 NEW: mock login for development
+  const mockLogin = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/test-login`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        const { access_token } = await response.json();
+        setToken(access_token);
+        localStorage.setItem("token", access_token);
+        const userData = await getMe(access_token);
+        setUser(userData);
+      } else {
+        console.error('Mock login failed');
+      }
+    } catch (error) {
+      console.error('Mock login error', error);
     }
   };
 
@@ -65,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [initData]);
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, mockLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );

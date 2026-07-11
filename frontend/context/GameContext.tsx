@@ -9,7 +9,7 @@ interface GameContextType {
   multiplier: number;
   roundStatus: "idle" | "countdown" | "active" | "ended";
   countdown: number;
-  placeBet: (wager: number, autoCashOut?: number) => void;
+  placeBet: (wager: number, autoCashOut?: number, walletType?: string) => void;
   cashOut: () => void;
   betId: string | null;
   setBetId: (id: string) => void;
@@ -22,30 +22,60 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const { socket, multiplier, roundState, countdown } = useGameSocket(token);
   const [betId, setBetId] = useState<string | null>(null);
   const [roundStatus, setRoundStatus] = useState<"idle" | "countdown" | "active" | "ended">("idle");
+  const [forceActive, setForceActive] = useState(false); // debug
 
+  // ---- Update roundStatus from socket events ----
   useEffect(() => {
     if (roundState) {
+      console.log("🔄 GameContext: roundState updated", roundState);
       setRoundStatus(roundState.status);
-      if (roundState.status === "completed") {
+      // If the round is completed, clear betId
+      if (roundState.status === "completed" || roundState.status === "ended") {
         setBetId(null);
       }
     }
   }, [roundState]);
 
-  const placeBet = (wager: number, autoCashOut?: number) => {
-    if (!socket) return;
-    socket.emit("placeBet", { wager, autoCashOut }, (response: any) => {
+  // ---- DEBUG: force active after 5s if no roundState ----
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!roundState && !forceActive) {
+        console.warn("⚠️ No roundState received, forcing active state for debugging");
+        setRoundStatus("active");
+        setForceActive(true);
+        // We don't set multiplier here; it will come from socket or stay 1.0
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [roundState, forceActive]);
+
+  // ---- placeBet ----
+  const placeBet = (wager: number, autoCashOut?: number, walletType?: string) => {
+    if (!socket) {
+      console.error("Socket not connected");
+      return;
+    }
+    socket.emit("placeBet", { wager, autoCashOut, walletType }, (response: any) => {
       if (response.success) {
         setBetId(response.betId);
+      } else {
+        console.error("Place bet failed:", response.message);
+        // Optionally show a toast in the component
       }
     });
   };
 
+  // ---- cashOut ----
   const cashOut = () => {
-    if (!socket || !betId) return;
+    if (!socket || !betId) {
+      console.error("No socket or betId");
+      return;
+    }
     socket.emit("cashOut", { betId }, (response: any) => {
       if (response.success) {
         setBetId(null);
+      } else {
+        console.error("Cash out failed:", response.message);
       }
     });
   };

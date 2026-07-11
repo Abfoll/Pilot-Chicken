@@ -7,13 +7,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
 
-  // ----- CORS configuration -----
+  // Allow frontend origins (local and production)
   app.enableCors({
     origin: [
-      'https://pilot-chicken.vercel.app',   // your production frontend
-      'http://localhost:3000',              // local development (adjust if needed)
+      'http://localhost:3000',      // local frontend
+      'http://localhost:3001',      // local backend (if needed)
+      'https://pilot-chicken.vercel.app', // production frontend
+      '*', // for testing only – remove in production
     ],
-    credentials: true,                      // allow cookies / Authorization header
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });

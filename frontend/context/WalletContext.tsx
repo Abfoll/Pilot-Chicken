@@ -21,8 +21,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     if (!token) return;
     try {
       const data = await getWallet(token);
-      setBalance(data.balance);
-      setBonusBalance(data.bonusBalance || 0);
+      setBalance(Number(data.balance) || 0);
+      setBonusBalance(Number(data.bonusBalance) || 0);
     } catch (error) {
       console.error("Failed to fetch wallet", error);
     }
