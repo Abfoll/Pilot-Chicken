@@ -44,6 +44,7 @@ services:
         value: your-redis-host
       - key: REDIS_PORT
         value: 6379
-    databases:
-      - name: pilot-chicken-db
-        plan: starter
+
+databases:
+  - name: pilot-chicken-db
+    plan: starter

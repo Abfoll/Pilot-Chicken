@@ -12,7 +12,7 @@ import { Bet } from '../modules/bet/bet.entity';
   imports: [
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => {
-        const url = config.get<string>('DATABASE_URL') ?? buildDatabaseUrl(config);
+        const url = buildDatabaseUrl(config) ?? config.get<string>('DATABASE_URL');
         if (!url) {
           throw new Error('DATABASE_URL or DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME is required to start the backend');
         }
