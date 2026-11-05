@@ -12,14 +12,14 @@ import { Bet } from '../modules/bet/bet.entity';
   imports: [
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => {
-        const url = buildDatabaseUrl(config) ?? config.get<string>('DATABASE_URL');
-        if (!url) {
+        const databaseConfig = buildDatabaseConfig(config);
+        if (!databaseConfig) {
           throw new Error('DATABASE_URL or DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME is required to start the backend');
         }
 
         return {
           type: 'postgres',
-          url,
+          ...databaseConfig,
           entities: [User, Wallet, Transaction, Round, Bet],
           synchronize: true,
           logging: true,
@@ -38,16 +38,26 @@ import { Bet } from '../modules/bet/bet.entity';
 })
 export class DatabaseModule {}
 
-function buildDatabaseUrl(config: ConfigService): string | undefined {
+function buildDatabaseConfig(config: ConfigService):
+  | { host: string; port: number; username: string; password: string; database: string }
+  | { url: string }
+  | undefined {
   const host = config.get<string>('DB_HOST');
   const port = config.get<string>('DB_PORT');
   const user = config.get<string>('DB_USER');
   const password = config.get<string>('DB_PASSWORD');
   const database = config.get<string>('DB_NAME');
 
-  if (!host || !port || !user || !password || !database) {
-    return undefined;
+  if (host && port && user && password && database) {
+    return {
+      host,
+      port: Number(port),
+      username: user,
+      password,
+      database,
+    };
   }
 
-  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(database)}`;
+  const url = config.get<string>('DATABASE_URL');
+  return url ? { url } : undefined;
 }
