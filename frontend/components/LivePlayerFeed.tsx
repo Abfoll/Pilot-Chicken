@@ -53,7 +53,7 @@ export default function LivePlayerFeed() {
             <span>{p.username}</span>
             <span>
               {p.cashedOut ? (
-                <span className="text-green-400">💰 {p.cashedOut.toFixed(2)}x</span>
+                <span className="text-green-400">{p.cashedOut.toFixed(2)}x</span>
               ) : (
                 <span className="text-yellow-400">🎯 {p.wager}</span>
               )}

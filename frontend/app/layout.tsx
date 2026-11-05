@@ -7,8 +7,8 @@ import { GameProvider } from "@/context/GameContext";
 import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
-  title: "Pilot Chicken",
-  description: "Real-time multiplayer multiplier game",
+  title: "Chicken Road",
+  description: "A fast, fair multiplier game made for Telegram",
 };
 
 export default function RootLayout({

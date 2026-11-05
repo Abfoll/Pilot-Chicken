@@ -1,11 +1,11 @@
-# 🐔 Pilot Chicken
+# Chicken Road
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![NestJS](https://img.shields.io/badge/NestJS-10-red)](https://nestjs.com/)
 
-**Pilot Chicken** is a real‑time multiplayer multiplier game designed for **Telegram Mini Apps**. Players place bets, watch a chicken fly higher, and must cash out before the flight ends. The game uses a **provably fair** system with SHA‑256 hashing, ensuring every round is transparent and verifiable.
+**Chicken Road** is a real‑time multiplayer multiplier game designed for **Telegram Mini Apps**. Players place bets, watch the flight climb, and must cash out before the round ends. The game uses a **provably fair** system with SHA‑256 hashing, ensuring every round is transparent and verifiable.
 
 ![Game Screenshot](https://via.placeholder.com/800x400?text=Pilot+Chicken+Gameplay)
 

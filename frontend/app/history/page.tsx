@@ -25,7 +25,7 @@ export default function HistoryPage() {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto">
-        <h2 className="text-2xl font-bold mb-4">📊 Game History</h2>
+        <h2 className="text-2xl font-bold mb-4">Game History</h2>
         {loading ? (
           <div className="text-center text-gray-400">Loading...</div>
         ) : (

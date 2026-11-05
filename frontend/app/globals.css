@@ -2,19 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --background: #07131d;
+  --surface: #0d202d;
+  --surface-raised: #122b3b;
+  --border: rgba(148, 204, 221, 0.16);
+  --text: #f4fbfc;
+  --muted: #91aeb8;
+  --cyan: #66e3ea;
+  --lime: #c9f36b;
+  --orange: #ff9a54;
+}
+
 body {
-  @apply bg-gray-900 text-white font-sans;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(52, 141, 164, 0.24), transparent 34rem),
+    var(--background);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
   overflow-x: hidden;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-800;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-600 rounded-full;
+  background: #285466;
+  border-radius: 999px;
+}
+
+* {
+  border-color: var(--border);
+}
+
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-shell {
+  background:
+    linear-gradient(180deg, rgba(7, 19, 29, 0) 0%, rgba(7, 19, 29, 0.38) 100%),
+    var(--background);
+}
+
+.glass-panel {
+  background: rgba(13, 32, 45, 0.86);
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(18px);
+}
+
+.dot-grid {
+  background-image: radial-gradient(rgba(102, 227, 234, 0.11) 1px, transparent 1px);
+  background-size: 18px 18px;
 }

@@ -12,40 +12,42 @@ export default function HomePage() {
   return (
     <Layout>
       <div className="text-center">
-        <h2 className="text-4xl font-bold mb-4">🐔 Pilot Chicken</h2>
-        <p className="text-gray-400 mb-6">Bet, fly, and cash out before the chicken crashes!</p>
+        <div className="mx-auto mb-8 max-w-2xl pt-8 sm:pt-14">
+          <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-[#66e3ea]">Telegram mini game</p>
+          <h2 className="text-5xl font-black tracking-tight sm:text-7xl">Take the <span className="text-[#c9f36b]">road.</span></h2>
+          <p className="mx-auto mt-5 max-w-md text-base leading-7 text-[#91aeb8]">Pick your moment, cash out before the crash, and climb the Chicken Road ranks.</p>
+        </div>
 
-        <div className="bg-gray-800 rounded-xl p-6 mb-6">
-          <div className="text-6xl font-mono font-bold text-yellow-400">
-            {multiplier.toFixed(2)}x
-          </div>
-          <div className="mt-2 text-gray-400">
-            {roundStatus === "idle" && "Waiting for next round..."}
+        <div className="glass-panel dot-grid mb-6 rounded-3xl p-7 sm:p-10">
+          <div className="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-[#91aeb8]">Current multiplier</div>
+          <div className="text-7xl font-black tracking-tight text-[#c9f36b] sm:text-8xl">{multiplier.toFixed(2)}x</div>
+          <div className="mt-3 text-sm text-[#91aeb8]">
+            {roundStatus === "idle" && "Waiting for the next round"}
             {roundStatus === "countdown" && `Round starts in ${countdown}s`}
-            {roundStatus === "active" && "🟢 Live! Cash out now!"}
-            {roundStatus === "ended" && "🔴 Round ended"}
+            {roundStatus === "active" && <span className="text-[#66e3ea]">Live now · cash out when you’re ready</span>}
+            {roundStatus === "ended" && "Round ended"}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Link href="/game" className="bg-blue-600 hover:bg-blue-700 p-4 rounded-xl shadow-lg">
-            <div className="text-2xl">🎮 Play Now</div>
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/game" className="rounded-2xl bg-[#c9f36b] p-4 font-extrabold text-[#07131d] shadow-[0_12px_30px_rgba(201,243,107,0.12)] transition hover:brightness-110">
+            <div className="text-lg">Play now <span aria-hidden="true">→</span></div>
           </Link>
-          <Link href="/wallet" className="bg-green-600 hover:bg-green-700 p-4 rounded-xl shadow-lg">
-            <div className="text-2xl">💰 Wallet</div>
+          <Link href="/wallet" className="rounded-2xl border border-white/10 bg-[#122b3b] p-4 font-extrabold text-white transition hover:border-[#66e3ea]/50">
+            <div className="text-lg">Wallet</div>
           </Link>
         </div>
 
-        <div className="mt-8 bg-gray-800 p-4 rounded-xl">
-          <h3 className="text-lg font-semibold">Quick Stats</h3>
-          <div className="flex justify-around mt-2">
+        <div className="glass-panel mt-8 rounded-2xl p-5">
+          <h3 className="text-left text-xs font-bold uppercase tracking-[0.2em] text-[#91aeb8]">Your snapshot</h3>
+          <div className="mt-4 flex justify-around">
             <div>
-              <p className="text-gray-400 text-xs">Balance</p>
-              <p className="text-xl font-bold">{balance.toFixed(2)}</p>
+              <p className="text-xs text-[#91aeb8]">Balance</p>
+              <p className="text-xl font-black text-[#c9f36b]">{balance.toFixed(2)} CR</p>
             </div>
             <div>
-              <p className="text-gray-400 text-xs">Current Round</p>
-              <p className="text-xl font-bold">#{countdown ? "Active" : "--"}</p>
+              <p className="text-xs text-[#91aeb8]">Current round</p>
+              <p className="text-xl font-black text-white">#{countdown ? "Active" : "--"}</p>
             </div>
           </div>
         </div>

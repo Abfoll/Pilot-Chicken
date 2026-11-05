@@ -91,7 +91,7 @@ export default function WalletPage() {
   return (
     <Layout>
       <div className="max-w-md mx-auto">
-        <h2 className="text-2xl font-bold mb-6">💰 Wallet</h2>
+        <h2 className="text-2xl font-bold mb-6">Wallet</h2>
 
         {!user ? (
           <div className="bg-yellow-800/20 border border-yellow-600 rounded-xl p-4 mb-6 text-center">
