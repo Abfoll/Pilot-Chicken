@@ -2,6 +2,7 @@ services:
   - type: web
     name: pilot-chicken-backend
     runtime: node
+    region: frankfurt
     repo: https://github.com/Abfoll/Pilot-Chicken
     buildCommand: cd backend && npm ci && npm run build
     startCommand: cd backend && npm run start:prod
@@ -47,4 +48,5 @@ services:
 
 databases:
   - name: pilot-chicken-db
+    region: frankfurt
     plan: starter
