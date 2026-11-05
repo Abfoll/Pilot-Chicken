@@ -58,14 +58,13 @@ export default function GamePage() {
   };
 
   const handleLogin = async () => {
-    if (mockLogin) {
-      await mockLogin();
-      if (user) {
-        toast.success(`Logged in as ${user.username}`);
-        window.location.reload();
-      } else {
-        toast.error("Login failed");
-      }
+    try {
+      const loggedInUser = await mockLogin();
+      toast.success(`Logged in as ${loggedInUser.username}`);
+      window.location.reload();
+    } catch (error) {
+      console.error("Demo login failed", error);
+      toast.error("Could not connect to the game server. Start the backend and try again.");
     }
   };
 

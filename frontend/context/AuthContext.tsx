@@ -9,7 +9,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: () => Promise<void>;
-  mockLogin: () => Promise<void>; // 👈 new
+  mockLogin: () => Promise<any>;
   logout: () => void;
 }
 
@@ -36,24 +36,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // 👇 NEW: mock login for development
   const mockLogin = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/test-login`, {
-        method: 'POST',
-      });
-      if (response.ok) {
-        const { access_token } = await response.json();
-        setToken(access_token);
-        localStorage.setItem("token", access_token);
-        const userData = await getMe(access_token);
-        setUser(userData);
-      } else {
-        console.error('Mock login failed');
-      }
-    } catch (error) {
-      console.error('Mock login error', error);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const response = await fetch(`${apiUrl}/auth/test-login`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Demo login failed (${response.status})`);
     }
+
+    const { access_token } = await response.json();
+    setToken(access_token);
+    localStorage.setItem("token", access_token);
+    const userData = await getMe(access_token);
+    setUser(userData);
+    return userData;
   };
 
   const logout = () => {
