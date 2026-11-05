@@ -12,37 +12,23 @@ import { Bet } from '../modules/bet/bet.entity';
   imports: [
     TypeOrmModule.forRootAsync({
       useFactory: (config: ConfigService) => {
-        let url = config.get('DATABASE_URL');
-        console.log('📦 Raw DATABASE_URL:', url); // will show in logs
-
-        // If the host is incomplete (no domain), fix it
-        if (url && !url.includes('.render.com')) {
-          const parts = url.split('@');
-          if (parts.length === 2) {
-            const [userpass, hostAndDb] = parts;
-            const [host, ...dbParts] = hostAndDb.split('/');
-            if (host && !host.includes('.')) {
-              // Assume Oregon region – adjust if your DB is elsewhere
-              const fullHost = `${host}.oregon-postgres.render.com:5432`;
-              const db = dbParts.join('/');
-              url = `${userpass}@${fullHost}/${db}`;
-              console.log('✅ Fixed DATABASE_URL (masked):', url.replace(/:[^:@]*@/, ':***@'));
-            }
-          }
+        const url = config.get<string>('DATABASE_URL') ?? buildDatabaseUrl(config);
+        if (!url) {
+          throw new Error('DATABASE_URL or DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME is required to start the backend');
         }
-
-        // Ensure SSL is enabled for production (always for Render)
-        const isProduction = config.get('NODE_ENV') === 'production';
-        const finalUrl = url + (url.includes('?') ? '&' : '?') + 'sslmode=require';
 
         return {
           type: 'postgres',
-          url: finalUrl,
+          url,
           entities: [User, Wallet, Transaction, Round, Bet],
-          synchronize: true, // auto‑create tables for now (disable later)
+          synchronize: true,
           logging: true,
-          ssl: {
-            rejectUnauthorized: false,
+          ssl: config.get('NODE_ENV') === 'production'
+            ? { rejectUnauthorized: false }
+            : undefined,
+          extra: {
+            connectionTimeoutMillis: 10000,
+            keepAlive: true,
           },
         };
       },
@@ -51,3 +37,17 @@ import { Bet } from '../modules/bet/bet.entity';
   ],
 })
 export class DatabaseModule {}
+
+function buildDatabaseUrl(config: ConfigService): string | undefined {
+  const host = config.get<string>('DB_HOST');
+  const port = config.get<string>('DB_PORT');
+  const user = config.get<string>('DB_USER');
+  const password = config.get<string>('DB_PASSWORD');
+  const database = config.get<string>('DB_NAME');
+
+  if (!host || !port || !user || !password || !database) {
+    return undefined;
+  }
+
+  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(database)}`;
+}
