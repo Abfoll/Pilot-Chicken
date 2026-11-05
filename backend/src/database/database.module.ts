@@ -42,6 +42,11 @@ function buildDatabaseConfig(config: ConfigService):
   | { host: string; port: number; username: string; password: string; database: string }
   | { url: string }
   | undefined {
+  const url = config.get<string>('DATABASE_URL');
+  if (url) {
+    return { url };
+  }
+
   const host = config.get<string>('DB_HOST');
   const port = config.get<string>('DB_PORT');
   const user = config.get<string>('DB_USER');
@@ -58,6 +63,5 @@ function buildDatabaseConfig(config: ConfigService):
     };
   }
 
-  const url = config.get<string>('DATABASE_URL');
-  return url ? { url } : undefined;
+  return undefined;
 }
