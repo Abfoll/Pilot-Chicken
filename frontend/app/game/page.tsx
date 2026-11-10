@@ -12,6 +12,7 @@ import MultiplierHistory from "@/components/MultiplierHistory";
 import BetControls from "@/components/BetControls";
 import CountdownTimer from "@/components/CountdownTimer";
 import LivePlayerFeed from "@/components/LivePlayerFeed";
+import ChickenRoadBackground from "@/components/ChickenRoadBackground";
 
 export default function GamePage() {
   const { multiplier, roundStatus, countdown, placeBet, cashOut, betId, currentRound } = useGame();
@@ -120,8 +121,11 @@ export default function GamePage() {
     <Layout>
       <div className="max-w-4xl mx-auto">
         <div className="bg-gray-800 rounded-2xl p-6 shadow-2xl">
-          <div className="relative h-56 mb-4">
-            <ChickenAnimation multiplier={multiplier} isFlying={roundStatus === "active"} />
+          <div className="relative h-56 mb-4 overflow-hidden rounded-2xl border border-white/10 shadow-inner">
+            <ChickenRoadBackground contained density="medium" paused={roundStatus === "ended"} />
+            <div className="relative z-10 w-full h-full">
+              <ChickenAnimation multiplier={multiplier} isFlying={roundStatus === "active"} />
+            </div>
           </div>
 
           <MultiplierDisplay
