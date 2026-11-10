@@ -1,13 +1,11 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { RoundService } from './round.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('round')
 export class RoundController {
   constructor(private roundService: RoundService) {}
 
   @Get('current')
-  @UseGuards(JwtAuthGuard)
   getCurrentRound() {
     const round = this.roundService.getCurrentRound();
     if (!round) return { status: 'idle' };
@@ -16,21 +14,21 @@ export class RoundController {
       roundNumber: round.roundNumber,
       status: round.status,
       multiplier: round.status === 'active' ? this.roundService.getMultiplier() : null,
-      crashMultiplier: round.status === 'completed' ? round.crashMultiplier : null,
+      crashMultiplier: round.status === 'completed' ? Number(round.crashMultiplier) : null,
       serverSeedHash: round.serverSeedHash,
     };
   }
 
   @Get('history')
-  @UseGuards(JwtAuthGuard)
   async getHistory() {
     const rounds = await this.roundService.getRecentRounds(50);
-    return rounds.map(r => ({
+    const formatted = rounds.map((r) => ({
       id: r.id,
       roundNumber: r.roundNumber,
-      multiplier: r.crashMultiplier,
+      multiplier: Number(r.crashMultiplier),
       endedAt: r.endedAt,
     }));
+    return { rounds: formatted };
   }
 
   @Get('verify/:id')
@@ -45,12 +43,15 @@ export class RoundController {
       round.clientSeed,
       round.nonce,
     );
+    const crashMultiplierNum = Number(round.crashMultiplier);
+    const verified = Math.abs(computed - crashMultiplierNum) < 0.001;
+
     return {
-      verified: computed === round.crashMultiplier,
+      verified,
       serverSeed: round.serverSeed,
       clientSeed: round.clientSeed,
       nonce: round.nonce,
-      crashMultiplier: round.crashMultiplier,
+      crashMultiplier: crashMultiplierNum,
       computed,
     };
   }

@@ -8,6 +8,9 @@ import { TransactionModule } from './modules/transaction/transaction.module';
 import { RoundModule } from './modules/round/round.module';
 import { BetModule } from './modules/bet/bet.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
+import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -23,6 +26,9 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     RoundModule,
     BetModule,
     WebsocketModule,
+    LeaderboardModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { RoundService } from './modules/round/round.service';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -8,7 +9,15 @@ describe('AppController', () => {
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        AppService,
+        {
+          provide: RoundService,
+          useValue: {
+            getRecentRounds: jest.fn().mockResolvedValue([]),
+          },
+        },
+      ],
     }).compile();
 
     appController = app.get<AppController>(AppController);

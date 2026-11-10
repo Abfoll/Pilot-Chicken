@@ -23,6 +23,7 @@ export class GameGateway
   private multiplierInterval: NodeJS.Timeout;
   private roundInProgress = false;
   private countdownSeconds = 5;
+  private remainingCountdown = 5;
 
   constructor(
     private roundService: RoundService,
@@ -32,7 +33,8 @@ export class GameGateway
     private jwtService: JwtService,
     private userService: UserService,
   ) {
-    this.countdownSeconds = this.configService.get('COUNTDOWN_SECONDS') || 5;
+    this.countdownSeconds = Number(this.configService.get('COUNTDOWN_SECONDS')) || 5;
+    this.remainingCountdown = this.countdownSeconds;
   }
 
   async onModuleInit() {
@@ -67,12 +69,14 @@ export class GameGateway
       // Send current round state
       const round = this.roundService.getCurrentRound();
       if (round) {
+        const clientStatus = round.status === 'pending' ? 'countdown' : round.status;
         client.emit('roundState', {
           id: round.id,
           roundNumber: round.roundNumber,
-          status: round.status,
-          multiplier: round.status === 'active' ? this.roundService.getMultiplier() : null,
-          crashMultiplier: round.status === 'completed' ? round.crashMultiplier : null,
+          status: clientStatus,
+          countdown: this.remainingCountdown,
+          multiplier: round.status === 'active' ? this.roundService.getMultiplier() : 1.0,
+          crashMultiplier: round.status === 'completed' ? Number(round.crashMultiplier) : null,
           serverSeedHash: round.serverSeedHash,
         });
         if (round.status === 'active') {
@@ -94,13 +98,29 @@ export class GameGateway
   // Place Bet
   // -------------------------------------------------------------
   @SubscribeMessage('placeBet')
-  async handlePlaceBet(client: Socket, payload: { wager: number; autoCashOut?: number; walletType?: string }) {
+  async handlePlaceBet(
+    client: Socket,
+    payload: { wager: number; autoCashOut?: number; walletType?: string },
+  ) {
     const user = client.data.user;
     if (!user) return { success: false, message: 'Unauthorized' };
-    const round = this.roundService.getCurrentRound();
-    if (!round || round.status !== 'active') {
-      return { success: false, message: 'Round not active' };
+
+    const wager = Number(payload.wager);
+    if (isNaN(wager) || wager <= 0) {
+      return { success: false, message: 'Invalid wager amount' };
     }
+
+    const round = this.roundService.getCurrentRound();
+    if (!round || round.status !== 'pending') {
+      return {
+        success: false,
+        message:
+          round?.status === 'active'
+            ? 'Betting closed for this round. Place your bet during the countdown!'
+            : 'No active betting round available',
+      };
+    }
+
     const pendingBets = await this.betService.findPendingByRound(round.id);
     const existing = pendingBets.find((b) => b.user.id === user.id);
     if (existing) {
@@ -108,40 +128,100 @@ export class GameGateway
     }
 
     try {
-      const walletType = payload.walletType || 'main';
+      const walletType = payload.walletType === 'bonus' ? 'bonus' : 'main';
       if (walletType === 'bonus') {
-        await this.walletService.deductFromBonus(user, payload.wager, `Bet on round #${round.roundNumber}`);
+        await this.walletService.deductFromBonus(
+          user,
+          wager,
+          `Bet on round #${round.roundNumber}`,
+        );
       } else {
-        await this.walletService.deduct(user, payload.wager, `Bet on round #${round.roundNumber}`);
+        await this.walletService.deduct(
+          user,
+          wager,
+          `Bet on round #${round.roundNumber}`,
+        );
       }
-      const bet = await this.betService.createBet(user, round, payload.wager);
+
+      const autoCashOut =
+        payload.autoCashOut && Number(payload.autoCashOut) > 1.01
+          ? Number(payload.autoCashOut)
+          : null;
+
+      const bet = await this.betService.createBet(
+        user,
+        round,
+        wager,
+        autoCashOut,
+        walletType,
+      );
       client.data.betId = bet.id;
-      client.data.autoCashOut = payload.autoCashOut || null;
-      client.data.walletType = walletType;
 
       this.server.emit('playerJoined', {
         id: user.id,
         username: user.username,
-        wager: payload.wager,
+        wager,
       });
 
       return { success: true, betId: bet.id };
     } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
   // -------------------------------------------------------------
-  // Cash Out (FIXED: numeric conversion)
+  // Cash Out Helper (handles both manual & auto cash out)
+  // -------------------------------------------------------------
+  private async processCashOut(bet: any, multiplier: number, round: any) {
+    if (!bet || bet.status !== 'pending') return null;
+
+    const wager = Number(bet.wager);
+    const mult = Number(multiplier);
+    const payout = Math.round(wager * mult * 100) / 100;
+
+    const walletType = bet.walletType || 'main';
+    if (walletType === 'bonus') {
+      await this.walletService.addBonus(
+        bet.user,
+        payout,
+        `Cashed out at ${mult.toFixed(2)}x on round #${round.roundNumber}`,
+      );
+    } else {
+      await this.walletService.credit(
+        bet.user,
+        payout,
+        `Cashed out at ${mult.toFixed(2)}x on round #${round.roundNumber}`,
+      );
+    }
+
+    await this.betService.cashOut(bet.id, mult, payout);
+
+    this.server.emit('playerCashedOut', {
+      playerId: bet.user.id,
+      username: bet.user.username,
+      multiplier: mult,
+      payout,
+    });
+
+    return { success: true, multiplier: mult, payout };
+  }
+
+  // -------------------------------------------------------------
+  // Cash Out
   // -------------------------------------------------------------
   @SubscribeMessage('cashOut')
   async handleCashOut(client: Socket, payload: { betId: number }) {
     const user = client.data.user;
     if (!user) return { success: false, message: 'Unauthorized' };
+
     const round = this.roundService.getCurrentRound();
     if (!round || round.status !== 'active') {
       return { success: false, message: 'Round not active' };
     }
+
     const bet = await this.betService.findById(payload.betId);
     if (!bet || bet.user.id !== user.id) {
       return { success: false, message: 'Bet not found' };
@@ -151,27 +231,8 @@ export class GameGateway
     }
 
     const multiplier = this.roundService.getMultiplier();
-    const wager = Number(bet.wager);           // force number
-    const mult = Number(multiplier);           // force number
-    const payout = wager * mult;
-    const roundedPayout = Math.round(payout * 100) / 100; // 2 decimal places
-
-    const walletType = client.data.walletType || 'main';
-    if (walletType === 'bonus') {
-      await this.walletService.addBonus(user, roundedPayout, `Cashed out at ${multiplier.toFixed(2)}x on round #${round.roundNumber}`);
-    } else {
-      await this.walletService.credit(user, roundedPayout, `Cashed out at ${multiplier.toFixed(2)}x on round #${round.roundNumber}`);
-    }
-    await this.betService.cashOut(bet.id, multiplier, payout);
-
-    this.server.emit('playerCashedOut', {
-      playerId: user.id,
-      username: user.username,
-      multiplier,
-      payout: roundedPayout,
-    });
-
-    return { success: true, multiplier, payout: roundedPayout };
+    const result = await this.processCashOut(bet, multiplier, round);
+    return result || { success: false, message: 'Cashout failed' };
   }
 
   // -----------------------------------------------------------
@@ -193,18 +254,30 @@ export class GameGateway
     this.roundInProgress = true;
     this.logger.log(`Starting countdown for round #${round.roundNumber}`);
 
+    this.server.emit('roundState', {
+      id: round.id,
+      roundNumber: round.roundNumber,
+      status: 'countdown',
+      countdown: this.countdownSeconds,
+      serverSeedHash: round.serverSeedHash,
+    });
+
     for (let i = this.countdownSeconds; i > 0; i--) {
+      this.remainingCountdown = i;
       this.server.emit('countdown', { seconds: i });
       await this.sleep(1000);
     }
 
     await this.roundService.startRound(round);
-    this.logger.log(`Round #${round.roundNumber} is now ACTIVE, crash at ${round.crashMultiplier}x`);
+    this.logger.log(
+      `Round #${round.roundNumber} is now ACTIVE, crash at ${round.crashMultiplier}x`,
+    );
 
     this.server.emit('roundState', {
       id: round.id,
       roundNumber: round.roundNumber,
       status: 'active',
+      multiplier: 1.0,
       serverSeedHash: round.serverSeedHash,
     });
 
@@ -212,14 +285,16 @@ export class GameGateway
   }
 
   private startMultiplierTick(round: any) {
-    let multiplier = 1.0;
-    const increment = 0.01;
-    const crashPoint = round.crashMultiplier;
+    const crashPoint = Number(round.crashMultiplier);
+    const startTime = Date.now();
+    const growthRate = 0.06; // standard exponential crash curve: e^(0.06 * t)
 
     this.multiplierInterval = setInterval(async () => {
-      multiplier += increment;
+      const elapsedSeconds = (Date.now() - startTime) / 1000;
+      const currentMultiplier =
+        Math.round(Math.exp(growthRate * elapsedSeconds) * 100) / 100;
 
-      if (multiplier >= crashPoint) {
+      if (currentMultiplier >= crashPoint) {
         clearInterval(this.multiplierInterval);
 
         await this.roundService.endRound();
@@ -234,17 +309,26 @@ export class GameGateway
         this.server.emit('roundState', {
           id: round.id,
           roundNumber: round.roundNumber,
-          status: 'completed',
+          status: 'ended',
           crashMultiplier: crashPoint,
         });
 
         this.roundInProgress = false;
         setTimeout(() => {
           this.startGameLoop();
-        }, 2000);
+        }, 2500);
       } else {
-        this.roundService.updateMultiplier(multiplier);
-        this.server.emit('multiplierUpdate', { multiplier });
+        this.roundService.updateMultiplier(currentMultiplier);
+        this.server.emit('multiplierUpdate', { multiplier: currentMultiplier });
+
+        // Auto cashout for bets targeting this or lower multiplier
+        const pendingBets = await this.betService.findPendingByRound(round.id);
+        for (const bet of pendingBets) {
+          const autoCashOut = Number(bet.autoCashOut);
+          if (autoCashOut && autoCashOut > 1.0 && currentMultiplier >= autoCashOut) {
+            await this.processCashOut(bet, currentMultiplier, round);
+          }
+        }
       }
     }, 100);
   }

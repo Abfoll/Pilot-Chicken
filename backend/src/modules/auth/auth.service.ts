@@ -25,14 +25,38 @@ export class AuthService {
       .join('\n');
     
     const botToken = this.configService.get('TELEGRAM_BOT_TOKEN');
-    const secretKey = crypto.createHash('sha256').update(botToken).digest();
-    const computedHash = crypto
-      .createHmac('sha256', secretKey)
+    if (!botToken) {
+      throw new UnauthorizedException('TELEGRAM_BOT_TOKEN is not configured');
+    }
+
+    // Telegram Mini App (WebAppData) standard HMAC validation:
+    const webAppSecret = crypto
+      .createHmac('sha256', 'WebAppData')
+      .update(botToken)
+      .digest();
+    const computedHashWebApp = crypto
+      .createHmac('sha256', webAppSecret)
       .update(sortedParams)
       .digest('hex');
-    
-    if (computedHash !== hash) {
+
+    // Telegram Login Widget format (backward compatibility fallback):
+    const widgetSecret = crypto.createHash('sha256').update(botToken).digest();
+    const computedHashWidget = crypto
+      .createHmac('sha256', widgetSecret)
+      .update(sortedParams)
+      .digest('hex');
+
+    if (computedHashWebApp !== hash && computedHashWidget !== hash) {
       throw new UnauthorizedException('Invalid Telegram data');
+    }
+
+    // Check auth_date freshness (replay protection within 24 hours)
+    const authDate = Number(params.get('auth_date'));
+    if (authDate) {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      if (nowSeconds - authDate > 86400) {
+        throw new UnauthorizedException('Telegram auth data expired');
+      }
     }
 
     // Extract user data

@@ -21,8 +21,8 @@ import { Bet } from '../modules/bet/bet.entity';
           type: 'postgres',
           ...databaseConfig,
           entities: [User, Wallet, Transaction, Round, Bet],
-          synchronize: true,
-          logging: true,
+          synchronize: config.get('TYPEORM_SYNCHRONIZE') === 'true' || config.get('NODE_ENV') !== 'production',
+          logging: config.get('NODE_ENV') !== 'production',
           ssl: config.get('NODE_ENV') === 'production'
             ? { rejectUnauthorized: false }
             : undefined,

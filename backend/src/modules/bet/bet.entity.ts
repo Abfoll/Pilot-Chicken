@@ -16,6 +16,12 @@ export class Bet {
   @Column({ type: 'decimal', precision: 18, scale: 2 })
   wager: number;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  autoCashOut: number;
+
+  @Column({ default: 'main' })
+  walletType: string;
+
   @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true })
   cashOutMultiplier: number;
 

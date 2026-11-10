@@ -9,8 +9,7 @@ export class WalletController {
   @Get()
   @UseGuards(JwtAuthGuard)
   async getWallet(@Request() req) {
-    const wallet = await this.walletService.getWallet(req.user);
-    return { balance: wallet.balance, bonusBalance: wallet.bonusBalance };
+    return this.walletService.getBalances(req.user);
   }
 
   @Post('demo-credit')
@@ -22,13 +21,12 @@ export class WalletController {
     }
     const walletType = type === 'bonus' ? 'bonus' : 'main';
     const amount = 1000;
-    let wallet;
     if (walletType === 'bonus') {
-      wallet = await this.walletService.addBonus(req.user, amount, 'Demo bonus credit');
+      await this.walletService.addBonus(req.user, amount, 'Demo bonus credit');
     } else {
-      wallet = await this.walletService.credit(req.user, amount, 'Demo credit');
+      await this.walletService.credit(req.user, amount, 'Demo credit');
     }
-    return { balance: wallet.balance, bonusBalance: wallet.bonusBalance };
+    return this.walletService.getBalances(req.user);
   }
 
   // ---- NEW: set-balance endpoint ----
@@ -44,7 +42,7 @@ export class WalletController {
       throw new BadRequestException('Amount must be a positive number');
     }
     const walletType = type === 'bonus' ? 'bonus' : 'main';
-    const wallet = await this.walletService.setBalance(req.user, targetAmount, walletType);
-    return { balance: wallet.balance, bonusBalance: wallet.bonusBalance };
+    await this.walletService.setBalance(req.user, targetAmount, walletType);
+    return this.walletService.getBalances(req.user);
   }
 }

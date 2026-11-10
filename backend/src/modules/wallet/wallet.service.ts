@@ -29,11 +29,24 @@ export class WalletService {
     return wallet;
   }
 
+  async getBalances(user: User): Promise<{ balance: number; bonusBalance: number }> {
+    const mainWallet = await this.getWallet(user, 'main');
+    const bonusWallet = await this.getWallet(user, 'bonus');
+    return {
+      balance: Math.round((Number(mainWallet.balance) || 0) * 100) / 100,
+      bonusBalance:
+        Math.round(
+          (Number(bonusWallet.bonusBalance) || Number(mainWallet.bonusBalance) || 0) * 100,
+        ) / 100,
+    };
+  }
+
   async deduct(user: User, amount: number, description: string): Promise<Wallet> {
     if (amount <= 0) throw new BadRequestException('Amount must be positive');
     const wallet = await this.getWallet(user, 'main');
-    if (wallet.balance < amount) throw new BadRequestException('Insufficient balance');
-    wallet.balance -= amount;
+    const currentBalance = Number(wallet.balance) || 0;
+    if (currentBalance < amount) throw new BadRequestException('Insufficient balance');
+    wallet.balance = Math.round((currentBalance - amount) * 100) / 100;
     await this.walletRepo.save(wallet);
     await this.transactionService.create(user, wallet, -amount, 'debit', description);
     return wallet;
@@ -42,7 +55,8 @@ export class WalletService {
   async credit(user: User, amount: number, description: string): Promise<Wallet> {
     if (amount <= 0) throw new BadRequestException('Amount must be positive');
     const wallet = await this.getWallet(user, 'main');
-    wallet.balance += amount;
+    const currentBalance = Number(wallet.balance) || 0;
+    wallet.balance = Math.round((currentBalance + amount) * 100) / 100;
     await this.walletRepo.save(wallet);
     await this.transactionService.create(user, wallet, amount, 'credit', description);
     return wallet;
@@ -51,7 +65,8 @@ export class WalletService {
   async addBonus(user: User, amount: number, description: string): Promise<Wallet> {
     if (amount <= 0) throw new BadRequestException('Amount must be positive');
     const wallet = await this.getWallet(user, 'bonus');
-    wallet.bonusBalance += amount;
+    const currentBonus = Number(wallet.bonusBalance) || 0;
+    wallet.bonusBalance = Math.round((currentBonus + amount) * 100) / 100;
     await this.walletRepo.save(wallet);
     await this.transactionService.create(user, wallet, amount, 'credit', description);
     return wallet;
@@ -60,8 +75,9 @@ export class WalletService {
   async deductFromBonus(user: User, amount: number, description: string): Promise<Wallet> {
     if (amount <= 0) throw new BadRequestException('Amount must be positive');
     const wallet = await this.getWallet(user, 'bonus');
-    if (wallet.bonusBalance < amount) throw new BadRequestException('Insufficient bonus balance');
-    wallet.bonusBalance -= amount;
+    const currentBonus = Number(wallet.bonusBalance) || 0;
+    if (currentBonus < amount) throw new BadRequestException('Insufficient bonus balance');
+    wallet.bonusBalance = Math.round((currentBonus - amount) * 100) / 100;
     await this.walletRepo.save(wallet);
     await this.transactionService.create(user, wallet, -amount, 'debit', description);
     return wallet;
@@ -71,10 +87,11 @@ export class WalletService {
   async setBalance(user: User, amount: number, type: string = 'main'): Promise<Wallet> {
     if (amount < 0) throw new BadRequestException('Amount must be non-negative');
     const wallet = await this.getWallet(user, type);
+    const rounded = Math.round(amount * 100) / 100;
     if (type === 'bonus') {
-      wallet.bonusBalance = amount;
+      wallet.bonusBalance = rounded;
     } else {
-      wallet.balance = amount;
+      wallet.balance = rounded;
     }
     await this.walletRepo.save(wallet);
     return wallet;

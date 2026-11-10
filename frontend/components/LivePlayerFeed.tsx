@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useGameSocket } from "@/hooks/useGameSocket";
-import { useAuth } from "@/hooks/useAuth";
+import { useGame } from "@/context/GameContext";
 
 interface Player {
   id: string;
@@ -12,8 +11,7 @@ interface Player {
 }
 
 export default function LivePlayerFeed() {
-  const { token } = useAuth();
-  const { socket } = useGameSocket(token);
+  const { socket } = useGame();
   const [players, setPlayers] = useState<Player[]>([]);
 
   useEffect(() => {

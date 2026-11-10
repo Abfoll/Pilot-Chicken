@@ -22,17 +22,29 @@ export default function GamePage() {
   const [walletType, setWalletType] = useState<"main" | "bonus">("main");
   const [betLocked, setBetLocked] = useState(false);
 
+  // Reset bet lock on round completion or countdown
+  useEffect(() => {
+    if (roundStatus === "ended" || roundStatus === "completed" || roundStatus === "countdown") {
+      if (!betId) {
+        setBetLocked(false);
+      }
+    }
+  }, [roundStatus, betId]);
+
   // Auto-cashout
   useEffect(() => {
     if (betId && autoCashOut && multiplier >= autoCashOut && roundStatus === "active") {
-      cashOut();
-      toast.success(`Auto cashed out at ${multiplier.toFixed(2)}x!`);
-      refreshWallet();
-      setBetLocked(false);
+      cashOut().then((res) => {
+        if (res.success) {
+          toast.success(`Auto cashed out at ${(res.multiplier ?? multiplier).toFixed(2)}x!`);
+          refreshWallet();
+          setBetLocked(false);
+        }
+      });
     }
   }, [multiplier, autoCashOut, betId, roundStatus, cashOut, refreshWallet]);
 
-  const handlePlaceBet = () => {
+  const handlePlaceBet = async () => {
     if (!token) {
       toast.error("Please login first");
       return;
@@ -43,17 +55,28 @@ export default function GamePage() {
       return;
     }
     if (betLocked) return;
-    placeBet(wager, autoCashOut, walletType);
+
     setBetLocked(true);
-    toast.success(`Bet placed: ${wager} from ${walletType} wallet`);
+    const res = await placeBet(wager, autoCashOut, walletType);
+    if (res.success) {
+      toast.success(`Bet placed: ${wager} from ${walletType} wallet`);
+      refreshWallet();
+    } else {
+      toast.error(res.message || "Could not place bet");
+      setBetLocked(false);
+    }
   };
 
-  const handleCashOut = () => {
+  const handleCashOut = async () => {
     if (betId) {
-      cashOut();
-      toast.success(`Cashed out at ${multiplier.toFixed(2)}x!`);
-      refreshWallet();
-      setBetLocked(false);
+      const res = await cashOut();
+      if (res.success) {
+        toast.success(`Cashed out at ${(res.multiplier ?? multiplier).toFixed(2)}x!`);
+        refreshWallet();
+        setBetLocked(false);
+      } else {
+        toast.error(res.message || "Cash out failed");
+      }
     }
   };
 
@@ -115,15 +138,15 @@ export default function GamePage() {
             Status: {roundStatus} | Multiplier: {typeof multiplier === 'number' ? multiplier.toFixed(2) : '0.00'}x | Countdown: {countdown}s
           </div>
 
-          {/* Show bet controls during countdown OR active if no bet yet */}
-          {(roundStatus === "countdown" || (roundStatus === "active" && !betId) || roundStatus === "idle") && (
+          {/* Show bet controls during countdown or idle */}
+          {(roundStatus === "countdown" || roundStatus === "idle") && (
             <BetControls
               wager={wager}
               setWager={setWager}
               autoCashOut={autoCashOut}
               setAutoCashOut={setAutoCashOut}
               onPlaceBet={handlePlaceBet}
-              disabled={betLocked || (roundStatus === "active" && !!betId)}
+              disabled={betLocked}
               walletType={walletType}
               setWalletType={setWalletType}
               mainBalance={balance}
@@ -141,7 +164,15 @@ export default function GamePage() {
           )}
 
           {roundStatus === "active" && !betId && (
-            <div className="text-center text-yellow-400 mt-4">Place a bet to participate!</div>
+            <div className="text-center py-4 bg-gray-700/50 rounded-xl text-yellow-400 font-medium mt-4">
+              Flight in progress — next betting round opens shortly!
+            </div>
+          )}
+
+          {roundStatus === "ended" && (
+            <div className="text-center py-4 bg-gray-700/50 rounded-xl text-gray-300 font-medium mt-4">
+              Round crashed! Preparing next round...
+            </div>
           )}
 
           <div className="mt-6">

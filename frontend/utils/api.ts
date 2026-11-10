@@ -35,8 +35,13 @@ export const getWallet = async (token: string) => {
 };
 
 export const getHistory = async (page = 1) => {
-  const { data } = await apiClient.get(`/history?page=${page}`);
-  return data;
+  try {
+    const { data } = await apiClient.get(`/history?page=${page}`);
+    return data;
+  } catch {
+    const { data } = await apiClient.get(`/round/history?page=${page}`);
+    return data;
+  }
 };
 
 export const getLeaderboard = async () => {

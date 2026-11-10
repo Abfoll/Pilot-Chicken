@@ -12,11 +12,19 @@ export class BetService {
     private betRepo: Repository<Bet>,
   ) {}
 
-  async createBet(user: User, round: Round, wager: number): Promise<Bet> {
+  async createBet(
+    user: User,
+    round: Round,
+    wager: number,
+    autoCashOut: number | null = null,
+    walletType: string = 'main',
+  ): Promise<Bet> {
     const bet = this.betRepo.create({
       user,
       round,
       wager,
+      autoCashOut: autoCashOut || undefined,
+      walletType,
       status: 'pending',
     });
     return this.betRepo.save(bet);
